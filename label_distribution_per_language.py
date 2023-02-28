@@ -10,20 +10,12 @@ positive = []
 negative = []
 
 for language in languages:
-    datapath_train = f'../data/pre_processed_{language}.txt'
+    datapath_train = f'../dev_and_test_data_gold_labels/pre_processed_files/pre_processed_{language}.txt'
     df = pd.read_csv(datapath_train, delimiter='\t')
 
-    datapath_val = f'../data/pre_processed_val_{language}.txt'
+    datapath_val = f'../dev_and_test_data_gold_labels/pre_processed_files/pre_processed_val_{language}.txt'
     df_val = pd.read_csv(datapath_val, delimiter='\t')
-
-    # concatenate train and val
-    df = pd.concat([df, df_val])
-
-    # only pcm has a test set
-    if language == 'pcm':
-        datapath_test = f'../data/pre_processed_test_pcm.txt'
-        df_test = pd.read_csv(datapath_test, delimiter='\t')
-        df = pd.concat([df, df_test])  # concatenate test
+    df = pd.concat([df, df_val])  # concatenate val
 
     # get number of tweets per label
     neutral.append(df['label'].value_counts()['neutral'])
@@ -52,9 +44,6 @@ plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 labels = ['pcm', 'en', 'ig+ha']
-#neutral = [72, 10342, 9420]
-#positive = [1808, 7059, 7771]
-#negative = [3241, 3231, 7173]
 
 x = np.arange(len(labels))/3  # the label locations
 width = 0.1  # the width of the bars
@@ -66,7 +55,7 @@ rects3 = ax.bar(x + width, negative, width, label='negative')
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
 ax.set_ylabel('Number of tweets')
-ax.set_title('Number of tweets by sentiment and language')
+ax.set_title('Number of tweets in the test set by sentiment')
 ax.set_xticks(x, labels)
 ax.legend()
 
@@ -74,7 +63,7 @@ ax.bar_label(rects1, padding=3)
 ax.bar_label(rects2, padding=3)
 ax.bar_label(rects3, padding=3)
 
-plt.ylim(0, 11500)
+plt.ylim(0, 14000)
 fig.tight_layout()
 
-plt.savefig("label_distribution")
+plt.savefig("label_distribution.png")

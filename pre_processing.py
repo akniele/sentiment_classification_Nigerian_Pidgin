@@ -6,14 +6,13 @@ from pyarabic.araby import is_arabicrange  # to deal with arabic writing
 
 unicode_emojis = ['♫', '♪', '・', '♬', '…', '☻', '•', '♡', '♔', '♚', '👳', 'ﷺ']  # unicode characters we don't want
 
-languages = ['pcm']
+languages = ['ig', 'ha', 'en', 'pcm']
 splits = ['train', 'val', 'test']
 
 for lang in languages:
     for split in splits:
         outfile = open(f"pre_processed_{split}_{lang}.txt", "w", encoding="utf-8")
-
-        with open(f"{lang}_{split}.tsv", encoding="utf-8") as fd:
+        with open(f"{lang}_{split}.txt", encoding="utf-8") as fd:
             rd = csv.reader(fd, delimiter="\t", quotechar='"')
             for row in rd:
                 tweet = row[1]

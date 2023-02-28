@@ -9,21 +9,39 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score
 from collections import defaultdict
 import pickle
+import sys
 
 EPOCHS = 20
 LR = 5e-5
 BATCHSIZE_TRAIN = 32
 BATCHSIZE_TEST = 1
 
-# fine-tuning language(s)
-languages = ["pcm"]
+np.random.seed(112)
+seed = sys.argv[1]  # specify seed (command line argument)
+torch.manual_seed(int(seed))
+
+pre = sys.argv[2]  # specify pre-training language ("mono" or "multi")
+
+assert pre == "mono" or pre == "multi", "The accepted inputs for this argument are 'mono' and 'multi'!"
+
+if pre == "mono":
+    MODEL_TYPE = "bert-base-uncased"
+else:
+    MODEL_TYPE = "bert-base-multilingual-uncased"
+
+fine = sys.argv[3]  # specify fine-tuning language(s)
+
+languages = fine.split(",")
+
+assert languages == ["pcm"] or languages == ["ig", "ha"] or languages == ["en"], \
+    "The accepted inputs are 'pcm', 'ig,ha' and 'en'!"
 
 # file name for saving model (file ending: .pt)
-model_name = f"{''.join(languages)}_final.pt"
+model_name = f"{'_'.join(languages)}_final_{pre}.pt"
 
 # file names for saving some additional info (file ending: .pkl)
-acc_loss_file = f"acc_loss_{''.join(languages)}.pkl"
-raw_data_file = f"raw_{''.join(languages)}.pkl"
+acc_loss_file = f"acc_loss_{'_'.join(languages)}_{pre}_{seed}.pkl"
+raw_data_file = f"raw_{'_'.join(languages)}_{pre}_{seed}.pkl"
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -32,7 +50,7 @@ class Dataset(torch.utils.data.Dataset):
 
         self.labels = [labels[label] for label in df['label']]
         self.texts = [tokenizer(text,
-                               padding='max_length', max_length = 128, truncation=True,
+                                padding='max_length', max_length=128, truncation=True,
                                 return_tensors="pt") for text in df['tweet']]  # returns tokenized tweets
         self.raw_texts = [text for text in df['tweet']]  # returns the tweets themselves (human-readable)
         self.tweet_ids = [tweet_id for tweet_id in df['ID']]
@@ -74,10 +92,10 @@ class BertClassifier(nn.Module):
 
         super(BertClassifier, self).__init__()
 
-        self.bert = BertModel.from_pretrained('bert-base-uncased')
+        self.bert = BertModel.from_pretrained(MODEL_TYPE)
         self.dropout = nn.Dropout(dropout)
         self.linear = nn.Linear(768, 3)
-        self.relu = nn.LogSoftmax(dim=1)
+        self.softmax = nn.LogSoftmax(dim=1)
         self.train_acc = list()
         self.train_loss = list()
         self.val_acc = list()
@@ -85,10 +103,10 @@ class BertClassifier(nn.Module):
 
     def forward(self, input_id, mask):
 
-        _, pooled_output = self.bert(input_ids= input_id, attention_mask=mask,return_dict=False)
+        _, pooled_output = self.bert(input_ids=input_id, attention_mask=mask, return_dict=False)
         dropout_output = self.dropout(pooled_output)
         linear_output = self.linear(dropout_output)
-        final_layer = self.relu(linear_output)
+        final_layer = self.softmax(linear_output)
 
         return final_layer
 
@@ -114,7 +132,7 @@ def train(model, train_data, val_data, learning_rate, epochs):
         total_acc_train = 0
         total_loss_train = 0
 
-        for train_input, train_label, (_,_) in tqdm(train_dataloader):
+        for train_input, train_label, (_, _) in tqdm(train_dataloader):
             train_label = train_label.to(device)
             mask = train_input['attention_mask'].to(device)
             input_id = train_input['input_ids'].squeeze(1).to(device)
@@ -138,7 +156,7 @@ def train(model, train_data, val_data, learning_rate, epochs):
 
         with torch.no_grad():
 
-            for val_input, val_label, (_,_) in val_dataloader:
+            for val_input, val_label, (_, _) in val_dataloader:
                 val_label = val_label.to(device)
                 mask = val_input['attention_mask'].to(device)
                 input_id = val_input['input_ids'].squeeze(1).to(device)
@@ -155,7 +173,9 @@ def train(model, train_data, val_data, learning_rate, epochs):
             model.val_loss.append(total_loss_val / len(val_data))
 
         print(
-            f'Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .4f} | Train Accuracy: {total_acc_train / len(train_data): .4f} | Val Loss: {total_loss_val / len(val_data): .4f} | Val Accuracy: {total_acc_val / len(val_data): .4f}')
+            f'Epochs: {epoch_num + 1} | Train Loss: {total_loss_train / len(train_data): .4f} | Train Accuracy:'
+            f' {total_acc_train / len(train_data): .4f} | Val Loss: {total_loss_val / len(val_data): .4f}'
+            f' | Val Accuracy: {total_acc_val / len(val_data): .4f}')
 
     acc_loss = defaultdict()
     acc_loss["train_accuracy"] = model.train_acc
@@ -214,9 +234,6 @@ if __name__ == "__main__":
               'positive': 2,
               }
 
-    # set a seed so results are reproducible
-    np.random.seed(112)
-
     # prepare train and val data
     df_train = pd.DataFrame(columns=['ID', 'label', 'tweet'])
     df_val = pd.DataFrame(columns=['ID', 'label', 'tweet'])
@@ -240,9 +257,9 @@ if __name__ == "__main__":
     datapath_test = f'../data/pre_processed_test_pcm.txt'
     df_test = pd.read_csv(datapath_test, delimiter='\t')
 
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')  # instantiate tokenizer
+    tokenizer = BertTokenizer.from_pretrained(MODEL_TYPE)  # instantiate tokenizer
     model = BertClassifier()  # instantiate model
 
     train(model, df_train, df_val, LR, EPOCHS)  # train model
-    torch.save(model.state_dict(), f'../model/{model_name}')  # save model's state dict
+    torch.save(model.state_dict(), f'{model_name}')  # save model's state dict
     evaluate(model, df_test)  # evaluate model on test data
