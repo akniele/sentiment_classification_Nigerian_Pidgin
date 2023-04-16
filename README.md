@@ -1,3 +1,3 @@
-# sentiment_classification_Nigerian_Pidgin
+# Sentiment classification for Nigerian Pidgin tweets
 
-Files used for a class project on zero-shot sentiment classification for the low-resource language Nigerian Pidgin.
+Files used for a project on zero-shot sentiment classification for the low-resource language Nigerian Pidgin.
