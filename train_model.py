@@ -10,8 +10,9 @@ from sklearn.metrics import f1_score
 from collections import defaultdict
 import pickle
 import sys
+from acc_loss_plot import acc_loss_plot
 
-EPOCHS = 20
+EPOCHS = 4
 LR = 5e-5
 BATCHSIZE_TRAIN = 32
 BATCHSIZE_TEST = 1
@@ -37,11 +38,13 @@ assert languages == ["pcm"] or languages == ["ig", "ha"] or languages == ["en"],
     "The accepted inputs are 'pcm', 'ig,ha' and 'en'!"
 
 # file name for saving model (file ending: .pt)
-model_name = f"{'_'.join(languages)}_final_{pre}.pt"
+#model_name = f"{'_'.join(languages)}_final_{pre}_{seed}.pt"
 
 # file names for saving some additional info (file ending: .pkl)
-acc_loss_file = f"acc_loss_{'_'.join(languages)}_{pre}_{seed}.pkl"
 raw_data_file = f"raw_{'_'.join(languages)}_{pre}_{seed}.pkl"
+
+# file name for the accuracy-loss plot
+acc_loss_name = f"acc_loss_{'_'.join(languages)}_{pre}_{seed}.png"
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -128,6 +131,7 @@ def train(model, train_data, val_data, learning_rate, epochs):
         criterion = criterion.cuda()
 
     for epoch_num in range(epochs):
+        model.train()
 
         total_acc_train = 0
         total_loss_train = 0
@@ -155,6 +159,7 @@ def train(model, train_data, val_data, learning_rate, epochs):
         total_loss_val = 0
 
         with torch.no_grad():
+            model.eval()
 
             for val_input, val_label, (_, _) in val_dataloader:
                 val_label = val_label.to(device)
@@ -183,9 +188,8 @@ def train(model, train_data, val_data, learning_rate, epochs):
     acc_loss["val_accuracy"] = model.val_acc
     acc_loss["val_loss"] = model.val_loss
     
-    with open(acc_loss_file, "wb") as p:
-        pickle.dump(acc_loss, p)
-
+    acc_loss_plot(acc_loss, acc_loss_name)
+    
 
 def evaluate(model, test_data):
     test = Dataset(test_data)
@@ -204,6 +208,7 @@ def evaluate(model, test_data):
     results_dict = defaultdict()
     
     with torch.no_grad():
+        model.eval()
 
         for test_input, test_label, (raw_tweet, tweet_id) in test_dataloader:
             y_true.append(test_label.item())
