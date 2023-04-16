@@ -1,14 +1,19 @@
 import pickle
 
-language = "en"
+languages = ["en", "pcm", "ig_ha"]
 
-# write tweet ids, tweets, true and predicted labels to file
-outfile = open(f"raw_{language}.txt", "w", encoding="utf8")
+pre_train = ["mono", "multi"]
 
-outfile.write("ID\ttweet\ttrue_label\tpred_label\n")
+for language in languages:
+    for pre in pre_train:
+        for seed in range(2, 5+1):
+            # write tweet ids, tweets, true and predicted labels to file
+            outfile = open(f"raw_{language}_{pre}_{seed}.txt", "w", encoding="utf8")
 
-with open(f"raw_{language}.pkl", "rb") as pickle_dic:
-    dictionary = pickle.load(pickle_dic)
+            outfile.write("ID\ttweet\ttrue_label\tpred_label\n")
 
-    for tweet_id, (raw, true, pred) in dictionary.items():
-        outfile.write(f"{tweet_id[0]}\t{raw[0]}\t{true}\t{pred}\n")
+            with open(f"raw_{language}_{pre}_{seed}.pkl", "rb") as pickle_dic:
+                dictionary = pickle.load(pickle_dic)
+
+                for tweet_id, (raw, true, pred) in dictionary.items():
+                    outfile.write(f"{tweet_id[0]}\t{raw[0]}\t{true}\t{pred}\n")
