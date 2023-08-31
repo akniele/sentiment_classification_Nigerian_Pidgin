@@ -1,6 +1,6 @@
 # Zero-shot sentiment classification for Nigerian Pidgin Tweets
 
-This is a project on sentiment classification. A system description paper on the project, written by me and my professor, will be published in the SemEval 2023 proceedings. I'll add a link once that has happened.
+This is a project on sentiment classification. A system description paper on the project, written by me and my professor, was published in the SemEval 2023 proceedings. [Here is a link to the paper.](https://aclanthology.org/2023.semeval-1.205/)
 
 The aim of the project is to investigate how using different languages for pre-training and fine-tuning affects the performance of zero-shot sentiment analysis for Twitter data in Nigerian Pidgin. 
 
